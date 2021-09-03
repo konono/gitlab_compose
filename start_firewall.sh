@@ -1,6 +1,5 @@
 #!/bin/bash
-systemctl start firewalld
-systemctl enable firewalld
+systemctl enable firewalld --now
 
 firewall-cmd  --zone=public --add-port=10022/tcp
 firewall-cmd  --zone=public --add-port=80/tcp
