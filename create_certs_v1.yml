@@ -1,0 +1,77 @@
+---
+
+- hosts: 'localhost'
+  connection: 'local'
+  gather_facts: true
+  tasks:
+    - name: 'Generate private keys'
+      openssl_privatekey:
+        path: '/tmp/server.key'
+
+    - name: 'Generate CSRs standalone'
+      community.crypto.openssl_csr:
+        path: '/tmp/server.csr'
+        privatekey_path: '/tmp/server.key'
+        common_name: 'localhost'
+        subject_alt_name: 'DNS:localhost'
+        key_usage:
+          - 'keyEncipherment'
+          - 'nonRepudiation'
+          - 'digitalSignature'
+        extended_key_usage:
+          - 'serverAuth'
+
+    - name: 'Generate CA key'
+      community.crypto.openssl_privatekey:
+        path: '/tmp/root.key'
+
+    - name: 'Generate CA CSR'
+      community.crypto.openssl_csr:
+        path: '/tmp/root.csr'
+        privatekey_path: '/tmp/root.key'
+        common_name: 'registry'
+        organization_name: 'registry'
+        country_name: 'JP'
+        basic_constraints: 'CA:TRUE'
+
+    - name: 'Generate CA certificate'
+      community.crypto.x509_certificate:
+        path: '/tmp/root.crt'
+        csr_path: '/tmp/root.csr'
+        privatekey_path: '/tmp/root.key'
+        provider: 'selfsigned'
+
+    - name: 'Generate certificates'
+      community.crypto.x509_certificate:
+        path: '/tmp/server.crt'
+        csr_path: '/tmp/server.csr'
+        privatekey_path: '/tmp/server.key'
+        provider: 'ownca'
+        ownca_path: '/tmp/root.crt'
+        ownca_privatekey_path: '/tmp/root.key'
+        ownca_not_after: '+3650d'
+
+    - name: 'Create certs directory'
+      ansible.builtin.file:
+        path: './certs/'
+        state: 'directory'
+        setype: 'svirt_sandbox_file_t'
+        recurse: true
+        mode: 0755
+
+    - name: 'Copy server SSL certificate'
+      ansible.builtin.copy:
+        src: '/tmp/server.crt'
+        dest: './certs/server.crt'
+        mode: 0755
+
+    - name: 'Copy server SSL private key'
+      ansible.builtin.copy:
+        src: '/tmp/server.key'
+        dest: './certs/server.key'
+        mode: 0755
+
+    - name: 'Generate DH Parameters with a different size (2048 bits)'
+      community.crypto.openssl_dhparam:
+        path: './certs/dhparam.pem'
+        size: 2048
