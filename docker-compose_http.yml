@@ -1,4 +1,4 @@
-version: '2'
+version: '2.4'
 
 services:
   os:
@@ -7,42 +7,17 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     networks:
-      br_gitlab_nw:
-        ipv4_address: 172.20.0.100
-        ipv6_address: 2001:db8:13b:1000:ffff::100
-  registry:
-    image: registry:2
-    restart: always
-    expose:
-      - "5000"
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./registry:/registry
-      - ./certs:/certs
-    networks:
-      br_gitlab_nw:
-        ipv4_address: 172.20.0.2
-        ipv6_address: 2001:db8:13b:1000:ffff::2
-    environment:
-      - REGISTRY_LOG_LEVEL=info
-      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/registry
-      - REGISTRY_AUTH_TOKEN_REALM=https://localhost:10443/jwt/auth
-      - REGISTRY_AUTH_TOKEN_SERVICE=container_registry
-      - REGISTRY_AUTH_TOKEN_ISSUER=gitlab-issuer
-      - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/server.crt
-      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - "frontend"
+      - "backend"
   redis:
     restart: always
-    image: redis:6.2
+    image: redis:5.0.9
     command:
       - --loglevel warning
     volumes:
       - ./redis-data:/var/lib/redis:Z
     networks:
-      br_gitlab_nw:
-        ipv4_address: 172.20.0.3
-        ipv6_address: 2001:db8:13b:1000:ffff::3
+      - "backend"
 
   postgresql:
     restart: always
@@ -50,9 +25,7 @@ services:
     volumes:
       - ./postgresql-data:/var/lib/postgresql:Z
     networks:
-      br_gitlab_nw:
-        ipv4_address: 172.20.0.4
-        ipv6_address: 2001:db8:13b:1000:ffff::4
+      - "backend"
     environment:
       - DB_USER=gitlab
       - DB_PASS=password
@@ -70,17 +43,15 @@ services:
       - "10022:22"
     volumes:
       - ./gitlab-data:/home/git/data:Z
-      - ./certs:/certs
+      - ./certs:/certs:Z
     networks:
-      br_gitlab_nw:
-        ipv4_address: 172.20.0.5
-        ipv6_address: 2001:db8:13b:1000:ffff::5
+      - "frontend"
+      - "backend"
     environment:
       - DEBUG=false
-      - RACK_ATTACK_ENABLED==false
 
       - DB_ADAPTER=postgresql
-      - DB_HOST=172.20.0.4
+      - DB_HOST=postgresql
       - DB_PORT=5432
       - DB_USER=gitlab
       - DB_PASS=password
@@ -91,6 +62,9 @@ services:
 
       - TZ=Asia/Tokyo
       - GITLAB_TIMEZONE=Tokyo
+
+      - GITLAB_HTTPS=false
+      - SSL_SELF_SIGNED=false
 
       - GITLAB_HOST=localhost
       - GITLAB_PORT=8080
@@ -203,6 +177,38 @@ services:
       - OAUTH_AZURE_API_SECRET=
       - OAUTH_AZURE_TENANT_ID=
 
+  registry:
+    image: registry:2
+    restart: always
+    expose:
+      - "5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./registry:/registry:Z
+      - ./certs:/certs:Z
+    networks:
+      - "frontend"
+    environment:
+      - REGISTRY_LOG_LEVEL=info
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/registry
+      - REGISTRY_AUTH_TOKEN_REALM=http://localhost:8080/jwt/auth
+      - REGISTRY_AUTH_TOKEN_SERVICE=container_registry
+      - REGISTRY_AUTH_TOKEN_ISSUER=gitlab-issuer
+      - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/server.crt
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+
 networks:
-  br_gitlab_nw:
-    external: true
+  frontend:
+    enable_ipv6: true
+    driver: "bridge"
+    driver_opts:
+      com.docker.network.bridge.name: "frontend"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      config:
+      - subnet: "172.20.0.0/24"
+        gateway: "172.20.0.1"
+      - subnet: "2001:db8:13b:1000:ffff::/80"
+        gateway: "2001:db8:13b:1000:ffff::1"
+  backend: {}
