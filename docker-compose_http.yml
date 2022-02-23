@@ -93,7 +93,7 @@ services:
       # Registry
       - GITLAB_REGISTRY_ENABLED=true
       - GITLAB_REGISTRY_HOST=localhost
-      - GITLAB_REGISTRY_PORT=443
+      - GITLAB_REGISTRY_PORT=10443
       - GITLAB_REGISTRY_API_URL=http://registry:5000
       - GITLAB_REGISTRY_KEY_PATH=/certs/server.key
 
