@@ -2,53 +2,111 @@
 
 - hosts: 'localhost'
   connection: 'local'
-  gather_facts: true
+  gather_facts: false
+  vars:
+    ca_CN: 'ca.local'
+    #countryName
+    ca_C: 'JP'
+    #emailAddress
+    ca_EMail: 'admin@ca.local'
+    #localityName
+    ca_L: 'Minato'
+    #organizationName
+    ca_O: 'CA Trust Service'
+    #stateOrProvinceName
+    ca_ST: 'Tokyo'
+    #commonName
+    server_CN: '*.local'
+    #countryName
+    server_C: 'JP'
+    #emailAddress
+    server_EMail: 'admin@gitlab.local'
+    #localityName
+    server_L: 'Minato'
+    #organizationName
+    server_O: 'Automation division'
+    #stateOrProvinceName
+    server_ST: 'Tokyo'
+    #subjectAltName
+    server_san: 'DNS:{{ server_CN }}'
   tasks:
-    - name: 'Generate private keys'
-      openssl_privatekey:
-        path: '/tmp/server.key'
-
-    - name: 'Generate CSRs standalone'
-      community.crypto.openssl_csr:
-        path: '/tmp/server.csr'
-        privatekey_path: '/tmp/server.key'
-        common_name: 'localhost'
-        subject_alt_name: 'DNS:localhost'
-        key_usage:
-          - 'keyEncipherment'
-          - 'nonRepudiation'
-          - 'digitalSignature'
-        extended_key_usage:
-          - 'serverAuth'
+    - name: 'Create certs directory'
+      ansible.builtin.file:
+        path: './tmp/'
+        state: 'directory'
+        setype: 'svirt_sandbox_file_t'
+        recurse: true
+        mode: 0755
 
     - name: 'Generate CA key'
       community.crypto.openssl_privatekey:
-        path: '/tmp/root.key'
+        path: './tmp/root.key'
+        state: 'present'
 
     - name: 'Generate CA CSR'
       community.crypto.openssl_csr:
-        path: '/tmp/root.csr'
-        privatekey_path: '/tmp/root.key'
-        common_name: 'registry'
-        organization_name: 'registry'
-        country_name: 'JP'
+        path: './tmp/root.csr'
+        privatekey_path: './tmp/root.key'
+        common_name: '{{ ca_CN }}'
+        country_name: '{{ ca_C }}'
+        email_address: '{{ ca_EMail }}'
+        locality_name: '{{ ca_L }}'
+        organization_name: '{{ ca_O }}'
+        state: 'present'
+        stateOrProvinceName: '{{ ca_ST }}'
         basic_constraints: 'CA:TRUE'
+        key_usage:
+          - 'keyEncipherment'
+          - 'Data Encipherment'
+          - 'nonRepudiation'
+          - 'digitalSignature'
+          - 'keyAgreement'
+        extended_key_usage:
+          - 'serverAuth'
+          - 'clientAuth'
 
     - name: 'Generate CA certificate'
       community.crypto.x509_certificate:
-        path: '/tmp/root.crt'
-        csr_path: '/tmp/root.csr'
-        privatekey_path: '/tmp/root.key'
+        path: './tmp/root.crt'
+        csr_path: './tmp/root.csr'
+        privatekey_path: './tmp/root.key'
         provider: 'selfsigned'
+
+    - name: 'Generate server certificate private keys'
+      openssl_privatekey:
+        path: './tmp/server.key'
+        state: 'present'
+
+    - name: 'Generate server certificate CSRs standalone'
+      community.crypto.openssl_csr:
+        path: './tmp/server.csr'
+        privatekey_path: './tmp/server.key'
+        common_name: '{{ server_CN }}'
+        country_name: '{{ server_C }}'
+        email_address: '{{ server_EMail }}'
+        locality_name: '{{ server_L }}'
+        organization_name: '{{ server_O }}'
+        state: 'present'
+        stateOrProvinceName: '{{ server_ST }}'
+        subject_alt_name: '{{ server_san }}'
+        key_usage:
+          - 'keyEncipherment'
+          - 'Data Encipherment'
+          - 'nonRepudiation'
+          - 'digitalSignature'
+          - 'keyAgreement'
+        extended_key_usage:
+          - 'serverAuth'
+          - 'clientAuth'
 
     - name: 'Generate certificates'
       community.crypto.x509_certificate:
-        path: '/tmp/server.crt'
-        csr_path: '/tmp/server.csr'
-        privatekey_path: '/tmp/server.key'
+        path: './tmp/server.crt'
+        csr_path: './tmp/server.csr'
+        privatekey_path: './tmp/server.key'
         provider: 'ownca'
-        ownca_path: '/tmp/root.crt'
-        ownca_privatekey_path: '/tmp/root.key'
+        ownca_path: './tmp/root.crt'
+        ownca_privatekey_path: './tmp/root.key'
         ownca_not_after: '+3650d'
 
     - name: 'Create certs directory'
@@ -61,17 +119,23 @@
 
     - name: 'Copy server SSL certificate'
       ansible.builtin.copy:
-        src: '/tmp/server.crt'
+        src: './tmp/server.crt'
         dest: './certs/server.crt'
         mode: 0755
 
     - name: 'Copy server SSL private key'
       ansible.builtin.copy:
-        src: '/tmp/server.key'
+        src: './tmp/server.key'
         dest: './certs/server.key'
         mode: 0755
 
     - name: 'Generate DH Parameters with a different size (2048 bits)'
       community.crypto.openssl_dhparam:
-        path: './certs/dhparam.pem'
+        path: './tmp/dhparam.pem'
         size: 2048
+
+    - name: 'Copy DH Parameters file'
+      ansible.builtin.copy:
+        src: './tmp/dhparam.pem'
+        dest: './certs/dhparam.pem'
+        mode: 0644
