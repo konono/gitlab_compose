@@ -1,4 +1,4 @@
 #!/bin/bash
 dnf install -y nginx
-\cp -p ./nginx.conf /etc/nginx/
+\cp -p ../configs/nginx.conf /etc/nginx/
 systemctl enable nginx --now

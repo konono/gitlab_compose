@@ -20,5 +20,3 @@ pip3.11 install ansible
 # Add to PATH
 echo 'PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
-
-
