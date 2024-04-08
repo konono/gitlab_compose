@@ -1,17 +1,7 @@
-version: '2.4'
-
 services:
-  os:
-    image: centos:centos8
-    command: /sbin/init
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    networks:
-      - "frontend"
-      - "backend"
   redis:
     restart: always
-    image: redis:6.2
+    image: redis:6.2.6
     command:
       - --loglevel warning
     volumes:
@@ -21,7 +11,7 @@ services:
 
   postgresql:
     restart: always
-    image: sameersbn/postgresql:12-20200524
+    image: sameersbn/postgresql:14-20230628
     volumes:
       - ./postgresql-data:/var/lib/postgresql:Z
     networks:
@@ -34,7 +24,7 @@ services:
 
   gitlab:
     restart: always
-    image: sameersbn/gitlab:13.10.3
+    image: sameersbn/gitlab:16.10.1
     depends_on:
       - redis
       - postgresql
@@ -45,6 +35,12 @@ services:
     volumes:
       - ./gitlab-data:/home/git/data:Z
       - ./certs:/certs:Z
+    healthcheck:
+      test: ["CMD", "/usr/local/sbin/healthcheck"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 5m
     networks:
       - "frontend"
       - "backend"
@@ -93,7 +89,7 @@ services:
       - GITLAB_BACKUP_TIME=01:00
       - GITLAB_BACKUP_EXPIRY=173400
 
-      - GITLAB_MONITORING_IP_WHITELIST=172.16.0.0/12
+      - GITLAB_MONITORING_IP_WHITELIST=172.20.0.0/24
 
       # Registry
       - GITLAB_REGISTRY_ENABLED=true
@@ -202,10 +198,8 @@ services:
       - REGISTRY_AUTH_TOKEN_ISSUER=gitlab-issuer
       - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/server.crt
       - REGISTRY_STORAGE_DELETE_ENABLED=true
-
 networks:
   frontend:
-    enable_ipv6: true
     driver: "bridge"
     driver_opts:
       com.docker.network.bridge.name: "frontend"
@@ -214,6 +208,4 @@ networks:
       config:
       - subnet: "172.20.0.0/24"
         gateway: "172.20.0.1"
-      - subnet: "2001:db8:13b:1000:ffff::/80"
-        gateway: "2001:db8:13b:1000:ffff::1"
   backend: {}

@@ -111,7 +111,7 @@
 
     - name: 'Create certs directory'
       ansible.builtin.file:
-        path: './certs/'
+        path: '../certs/'
         state: 'directory'
         setype: 'svirt_sandbox_file_t'
         recurse: true
@@ -120,13 +120,13 @@
     - name: 'Copy server SSL certificate'
       ansible.builtin.copy:
         src: './tmp/server.crt'
-        dest: './certs/server.crt'
+        dest: '../certs/server.crt'
         mode: 0755
 
     - name: 'Copy server SSL private key'
       ansible.builtin.copy:
         src: './tmp/server.key'
-        dest: './certs/server.key'
+        dest: '../certs/server.key'
         mode: 0755
 
     - name: 'Generate DH Parameters with a different size (2048 bits)'
@@ -137,5 +137,10 @@
     - name: 'Copy DH Parameters file'
       ansible.builtin.copy:
         src: './tmp/dhparam.pem'
-        dest: './certs/dhparam.pem'
+        dest: '../certs/dhparam.pem'
         mode: 0644
+
+    - name: 'Clean tmp directory'
+      ansible.builtin.file:
+        path: './tmp'
+        state: 'absent'

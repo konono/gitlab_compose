@@ -19,11 +19,24 @@ sudo dnf install -y docker-ce --nobest
 ### Clone this repository
 ```
 git clone https://github.com/konono/gitlab_compose.git
+cd ./gitlab_compose
 ```
 
 ### firewall configuration
 ```
-./gitlab_compose/start_firewall.sh
+#!/bin/bash
+systemctl enable firewalld --now
+
+firewall-cmd  --zone=public --add-port=10022/tcp
+firewall-cmd  --zone=public --add-port=80/tcp
+firewall-cmd  --zone=public --add-port=443/tcp
+firewall-cmd  --zone=public --add-port=8080/tcp
+firewall-cmd  --zone=public --add-port=10443/tcp
+firewall-cmd  --zone=public --add-port=10022/tcp --permanent
+firewall-cmd  --zone=public --add-port=80/tcp --permanent
+firewall-cmd  --zone=public --add-port=443/tcp --permanent
+firewall-cmd  --zone=public --add-port=8080/tcp --permanent
+firewall-cmd  --zone=public --add-port=10443/tcp --permanent
 ```
 
 ### Start docker daemon
@@ -31,42 +44,39 @@ git clone https://github.com/konono/gitlab_compose.git
 sudo systemctl enable docker --now
 cat << EOF > /etc/docker/daemon.json
 {
-  "insecure-registries" : ["`ip -4 -o a show ens6 |awk '{print $4}'|sed -e 's/\/.*//g'`"]
+  "insecure-registries" : ["`ip -4 -o a show ens6 |awk '{print $4}'|sed -e 's/\/.*//g'`:10443"]
 }
 EOF
 sudo systemctl restart docker
 ```
 
-### Create docker network for ipv6
+### **If you use ipv6** do this procedure create docker network for ipv6
 ```
-./gitlab_compose/create_gitlab_nw.sh
+docker network create  --driver=bridge --subnet=172.20.0.0/24 --gateway=172.20.0.1 --ipv6 --subnet=2001:db8:13b:1000:ffff::/80 --gateway=2001:db8:13b:1000:ffff::1 frontend -o com.docker.network.bridge.name="frontend" -o com.docker.network.bridge.enable_ip_masquerade=true
 ```
 
 ### Install docker-compose
 ```
-curl -L https://github.com/docker/compose/releases/download/1.25.4/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
 ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
+
+# Add to PATH
+echo 'PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-### Install pyenv
+### Install python and pip
 ```
-git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bash_profile
-echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bash_profile
-echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
-echo 'eval "$(pyenv init --path)"' >> ~/.bash_profile
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
-echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
-source ~/.bash_profile
-pyenv install 3.9.7
-pyenv global 3.9.7
+sudo dnf install -y python3.11 python3.11-pip
+pip3.11 install ansible
+
 ```
 
 ### Create certs
 ```
 pip3 install ansible passlib
-cd gitlab_compose
+cd gitlab_compose/scripts/
 ansible-playbook create_certs_v1.yml
 ```
 
