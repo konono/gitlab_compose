@@ -5,3 +5,4 @@ postgresql-data
 redis-data
 registry
 docker-compose.yml
+config

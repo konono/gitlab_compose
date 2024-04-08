@@ -188,6 +188,16 @@ services:
       - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/server.crt
       - REGISTRY_STORAGE_DELETE_ENABLED=true
 
+  runner:
+    image: gitlab/gitlab-runner:v16.10.0
+    restart: always
+    networks:
+      - frontend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:Z
+      - ./runner_config:/etc/gitlab-runner:Z
+      - ./builds:/builds:Z
+
 networks:
   frontend:
     external: true

@@ -1,2 +1,2 @@
 #!/bin/bash
-ln -s ./compose_files/docker-compose_https.yml ../docker-compose.yml
+ln -s ./compose_files/docker-compose_http.yml ../docker-compose.yml

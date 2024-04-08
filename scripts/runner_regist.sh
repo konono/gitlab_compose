@@ -1,0 +1,26 @@
+#!/bin/bash
+docker-compose exec runner gitlab-runner register \
+  --tls-ca-file /certs/10.64.201.203.crt \
+  --non-interactive \
+  --name='Public docker executor' \
+  --request-concurrency=1 \
+  --limit=1 \
+  --url="https://10.64.201.203/" \
+  --token="yH2ELdXghjfimwKV-PDC" \
+  --executor='docker' \
+  --run-untagged=true\
+  --tag-list='docker' \
+  --clone-url="https://10.64.201.203" \
+  --env="GIT_STRATEGY=clone" \
+  --docker-tlsverify=false \
+  --docker-image='docker:stable' \
+  --docker-privileged=false \
+  --docker-disable-entrypoint-overwrite=false \
+  --docker-oom-kill-disable=false \
+  --docker-disable-cache=false \
+  --docker-volumes=/var/run/docker.sock:/var/run/docker.sock \
+  --docker-volumes=/builds:/builds \
+  --docker-volumes=/cache \
+  --docker-cache-dir='/cache' \
+  --docker-network-mode="gitlab_compose_frontend" \
+  --docker-shm-size=0

@@ -29,6 +29,8 @@
     server_ST: 'Tokyo'
     #subjectAltName
     server_san: 'DNS:{{ server_CN }}'
+    # TODO
+    #server_san: 'DNS:{{ server_CN }},URI:https://{IP ADDRESS},IP:{IP ADDRESS}'
   tasks:
     - name: 'Create certs directory'
       ansible.builtin.file:
@@ -140,7 +142,7 @@
         dest: '../certs/dhparam.pem'
         mode: 0644
 
-    - name: 'Clean tmp directory'
-      ansible.builtin.file:
-        path: './tmp'
-        state: 'absent'
+#    - name: 'Clean tmp directory'
+#      ansible.builtin.file:
+#        path: './tmp'
+#        state: 'absent'
