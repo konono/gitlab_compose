@@ -91,3 +91,9 @@ systemctl enable nginx --now
 ```
 docker-compose up -d
 ```
+
+### How to use docker registry
+```
+docker login [IP Address]:10443
+docker push [IP address]:10443/[group or username]/[project]/[container name]
+```
