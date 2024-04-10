@@ -3,7 +3,7 @@
 sudo dnf install -y python3.11 python3.11-pip
 
 # install developper tool
-sudo dnf install -y gcc zlib-devel bzip2 bzip2-devel readline readline-devel sqlite sqlite-devel openssl openssl-devel git libffi-devel make cmake bash-completion
+sudo dnf install -y gcc zlib-devel bzip2 bzip2-devel readline readline-devel sqlite sqlite-devel openssl openssl-devel libffi-devel make cmake bash-completion firewalld
 
 # install docker-ce
 sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
